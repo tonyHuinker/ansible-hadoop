@@ -1,0 +1,40 @@
+- name: Assign names to the Controllers
+  hostname: name=node{{hostname_suffix}}.localdomain
+- name: delete spark user
+  action: user name=spark group=spark remove=yes state=absent
+  async: 10
+  poll: 1
+- name: create spark group
+  action: group name=spark state=present
+- name: create spark user
+  action: user name=spark group=spark shell=/bin/bash generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa state=present
+  async: 10
+  poll: 1
+- name: Copy etc/hosts
+  action: copy src=/Users/tony/Developer/ansible/files/hosts dest=/etc/hosts owner=root
+- name: Copy pub file over
+  action: copy src=spark.pub dest=/home/spark owner=spark group=spark
+- name: delete current authorized_keys file
+  action: file path=home/spark/.ssh/authorized_keys state=absent
+- name: paste contents of pub file into authorized hosts
+  action: file path=/home/spark/.ssh/authorized_keys state=touch owner=spark group=spark
+- name: paste contents of pub file into authorized hosts 2
+  action: shell cat /home/spark/spark.pub >> /home/spark/.ssh/authorized_keys
+- name: paste contents of pub file into authorized hosts 3
+  action: file path=/home/spark/.ssh owner=spark group=spark recurse=yes
+  async: 10
+  poll: 1
+- name: delete the pub file
+  action: file path=home/spark/spark.pub state=absent
+  async: 10
+  poll: 1
+- name: Disable ipv6
+  action: sysctl name="net.ipv6.conf.all.disable_ipv6" value=1
+- name: Disable ipv6 2
+  action: sysctl name="net.ipv6.conf.default.disable_ipv6" value=1
+- name: Disable ipv6 3
+  action: sysctl name="net.ipv6.conf.lo.disable_ipv6" value=1
+- name: Copy latest version of spark
+  action: unarchive src=files/spark-1.6.1-bin-hadoop2.6.tar dest=/srv/ owner=spark group=spark
+- name: ensure correct permissions
+  action: file path=/srv/spark-1.6.1-bin-hadoop2.6 owner=spark group=spark mode="g+w" recurse=yes

@@ -1,0 +1,11 @@
+127.0.0.1	localhost.localdomain
+192.168.1.125   node1.localdomain
+192.168.1.110   node2.localdomain
+192.168.1.111   node3.localdomain
+192.168.1.113   node4.localdomain
+192.168.1.112   node5.localdomain
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters

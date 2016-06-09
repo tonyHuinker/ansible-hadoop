@@ -1,0 +1,72 @@
+- name: Assign names to the Controllers
+  hostname: name=node{{hostname_suffix}}.localdomain
+- name: create hadoop group
+  action: group name=hadoop state=present
+- name: create hadoop user
+  action: user name=hadoop group=hadoop shell=/bin/bash generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa state=present
+  async: 10
+  poll: 1
+- name: Copy pub file over
+  action: copy src=hadoop.pub dest=/home/hadoop owner=hadoop group=hadoop
+- name: delete current authorized_keys file
+  action: file path=home/hadoop/.ssh/authorized_keys state=absent
+- name: paste contents of pub file into authorized hosts
+  action: file path=/home/hadoop/.ssh/authorized_keys state=touch owner=hadoop group=hadoop
+- name: paste contents of pub file into authorized hosts 2
+  action: shell cat /home/hadoop/hadoop.pub >> /home/hadoop/.ssh/authorized_keys
+- name: paste contents of pub file into authorized hosts 3
+  action: file path=/home/hadoop/.ssh owner=hadoop group=hadoop recurse=yes
+  async: 10
+  poll: 1
+- name: delete the pub file
+  action: file path=home/hadoop/hadoop.pub state=absent
+  async: 10
+  poll: 1
+- name: Disable ipv6
+  action: sysctl name="net.ipv6.conf.all.disable_ipv6" value=1
+- name: Disable ipv6 2
+  action: sysctl name="net.ipv6.conf.default.disable_ipv6" value=1
+- name: Disable ipv6 3
+  action: sysctl name="net.ipv6.conf.lo.disable_ipv6" value=1
+- name: Copy latest version of hadoop
+  action: unarchive src=files/hadoop-2.7.0.tar dest=/srv/ owner=hadoop group=hadoop
+- name: ensure correct permissions
+  action: file path=/srv/hadoop-2.7.0 owner=hadoop group=hadoop mode="g+w" recurse=yes
+- name: check the symlink
+  stat: path=/srv/hadoop
+  register: srv_hadoop
+- name: remove the folder if one is there
+  action: file path=/srv/hadoop state=absent
+  when: srv_hadoop.stat.isdir is defined and srv_hadoop.stat.isdir
+- name: create symlink
+  action: file path=/srv/hadoop src=/srv/hadoop-2.7.0 state=link force=yes owner=hadoop group=hadoop
+- name: edit ~/.bashrc file
+  action: lineinfile dest=/home/hadoop/.bashrc line="export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64" state=present create=yes insertafter=EOF owner=hadoop
+  async: 10
+  poll: 1
+- name: edit ~/.bashrc again
+  action: lineinfile dest=/home/hadoop/.bashrc line="export HADOOP_HOME=/srv/hadoop" regexp="^export\ HADOOP\_HOME" state=present create=yes insertafter=EOF  owner=hadoop
+  async: 10
+  poll: 1
+- name: edit ~/.bashrc again again
+  action: lineinfile dest=/home/hadoop/.bashrc line="export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin" regexp="^export\ PATH\=\$PATH\:\$HADOOP" state=present create=yes insertafter=EOF owner=hadoop
+  async: 10
+  poll: 1
+- name: edit /hadoop/etc/hadoop/hadoop_env.sh
+  action: lineinfile dest=/srv/hadoop/etc/hadoop/hadoop-env.sh line="export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64" regexp="^export\ JAVA\_HOME\=\$" state=present create=yes insertafter="^\#\ The\ java\ implementation" owner=hadoop
+  async: 10
+  poll: 1
+- name: replace core-site.xml
+  action: copy src=files/core-site.xml dest=/srv/hadoop/etc/hadoop/core-site.xml owner=hadoop group=hadoop
+- name: replace hdfs-site.xml
+  action: copy src=files/hdfs-site.xml dest=/srv/hadoop/etc/hadoop/hdfs-site.xml owner=hadoop group=hadoop
+- name: replace yarn-site.xml
+  action: copy src=files/yarn-site.xml dest=/srv/hadoop/etc/hadoop/yarn-site.xml owner=hadoop group=hadoop
+- name: replace slaves
+  action: copy src=files/slaves dest=/srv/hadoop/etc/hadoop/slaves owner=hadoop group=hadoop
+- name: check the tmp folder
+  stat: path=/home/hadoop/tmp
+  register: tmp_hadoop
+- name: remove the folder if one is there
+  action: file path=/home/hadoop/tmp state=absent
+  when: tmp_hadoop.stat.isdir is defined and tmp_hadoop.stat.isdir

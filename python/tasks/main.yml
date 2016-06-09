@@ -1,0 +1,4 @@
+- name: make sure libselinux is insatlled
+  yum: name=libselinux-python state=present update_cache=true
+- name: install python
+  yum: name=python state=present

@@ -1,0 +1,28 @@
+- name: Assign names to the Controllers
+  hostname: name=node{{hostname_suffix}}.localdomain
+- name: delete spark user
+  action: user name=spark group=spark remove=yes state=absent
+  async: 10
+  poll: 1
+- name: create spark group
+  action: group name=spark state=present
+- name: create spark user
+  action: user name=spark group=spark shell=/bin/bash generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa state=present
+  async: 10
+  poll: 1
+- name: Copy etc/hosts
+  action: copy src=/Users/tony/Developer/ansible/files/hosts dest=/etc/hosts owner=root
+- name: copy  public ssh key from there to here
+  action: fetch flat=yes src=/home/spark/.ssh/id_rsa.pub fail_on_missing=yes dest=/Users/tony/Developer/ansible/roles/spark_slave/files/spark.pub
+- name: Disable ipv6
+  action: sysctl name="net.ipv6.conf.all.disable_ipv6" value=1
+- name: Disable ipv6 2
+  action: sysctl name="net.ipv6.conf.default.disable_ipv6" value=1
+- name: Disable ipv6 3
+  action: sysctl name="net.ipv6.conf.lo.disable_ipv6" value=1
+- name: Copy latest version of spark
+  action: unarchive src=files/spark-1.6.1-bin-hadoop2.6.tar dest=/srv/ owner=spark group=spark
+- name: ensure correct permissions
+  action: file path=/srv/spark-1.6.1-bin-hadoop2.6 owner=spark group=spark mode="g+w" recurse=yes
+- name: replace slaves
+  action: copy src=files/slaves dest=/srv/spark-1.6.1-bin-hadoop2.6/conf/slaves owner=spark group=spark
